@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write   # para subir SARIF
+      security-events: write   # subir SARIF
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,21 +32,21 @@ jobs:
         working-directory: app
         run: npm test -- --ci
 
-      # ---------- SAST (Semgrep) ----------
-      - name: Semgrep SAST
-        uses: returntocorp/semgrep-action@v1
-        with:
-          # usamos tu config local
-          config: security/sast/.semgrep.yml
-          # generamos el SARIF explícitamente
-          args: --sarif --output=semgrep.sarif
+
+       # SAST (Semgrep) 
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep scan
+        run: semgrep --config security/sast/.semgrep.yml --sarif --output=semgrep.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
 
-      # ---------- SCA + Container ----------
+
+      #  SCA + Container 
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@v0.2.2
 
