@@ -1,0 +1,20 @@
+# Node
+**/node_modules/
+**/npm-debug.log*
+**/yarn-error.log
+**/pnpm-lock.yaml
+**/.pnpm-store
+**/coverage/
+**/dist/
+**/build/
+
+# Entornos
+.env
+.env.*
+!.env.example
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

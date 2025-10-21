@@ -1,0 +1,67 @@
+name: CI/CD (Sprint 1)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install deps
+        working-directory: app
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: app
+        env:
+          NODE_ENV: test
+        run: npm test -- --ci
+
+      # SAST (Semgrep)
+      - name: Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: |
+            security/sast/.semgrep.yml
+          generateSarif: true
+          sarifFile: semgrep.sarif
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+      # SCA (npm audit + Trivy FS)
+      - name: npm audit (SCA)
+        working-directory: app
+        run: npm audit --audit-level=high
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+
+      - name: Trivy FS scan
+        run: trivy fs --severity HIGH,CRITICAL --exit-code 1 --no-progress .
+
+      # Container scan
+      - name: Build Docker image
+        run: docker build -t demoapi:${{ github.sha }} .
+
+      - name: Trivy Image scan
+        run: trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress demoapi:${{ github.sha }}
