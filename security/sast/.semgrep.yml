@@ -1,7 +1,7 @@
 rules:
-  - id: no-eval
+  - id: detect-eval
     patterns:
       - pattern: eval($X)
-    message: Avoid using eval(), it can lead to security issues
+    message: "Avoid using eval(); it can lead to serious security vulnerabilities"
     severity: ERROR
     languages: [javascript]
