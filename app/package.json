@@ -7,13 +7,18 @@
     "start": "node src/index.js",
     "test": "jest --runInBand"
   },
-  "keywords": ["devsecops", "demo", "node", "api"],
+  "keywords": [
+    "devsecops",
+    "demo",
+    "node",
+    "api"
+  ],
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.2"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
+    "jest": "^30.2.0",
     "supertest": "^7.0.0"
   }
 }
