@@ -1,12 +1,7 @@
 rules:
-- id: ejemplo-regla-seguridad
-  languages: [javascript]        # Lenguaje al que se aplica la regla
-  message: "Uso inseguro de eval() detectado"
-  severity: ERROR
-  patterns:
-    - pattern: eval(...)
-      anchors:
-        - "==> Este patrón detecta uso de eval()"
-  metadata:
-    short_description: "No usar eval por riesgos de seguridad."
-    references: ["https://semgrep.dev/docs/writing-rules/rule-syntax/"]
+  - id: detect-eval
+    patterns:
+      - pattern: eval($X)
+    message: Avoid using eval().
+    languages: [javascript]
+    severity: WARNING
