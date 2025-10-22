@@ -7,12 +7,7 @@
     "start": "node src/index.js",
     "test": "jest --runInBand"
   },
-  "keywords": [
-    "devsecops",
-    "demo",
-    "node",
-    "api"
-  ],
+  "keywords": [],
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.2"
@@ -22,9 +17,6 @@
     "supertest": "^7.0.0"
   },
   "overrides": {
-    "brace-expansion": "^2.0.1",
-    "cross-spawn": "^7.0.1"
+    "cross-spawn": "7.0.6"
   }
-
-
 }
