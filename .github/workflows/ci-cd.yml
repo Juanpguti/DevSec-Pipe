@@ -41,30 +41,18 @@ jobs:
       - name: Run Semgrep SAST scan
         run: |
           semgrep \
-            --config security/sast/.semgrep.yml \
+            --config ./security/sast/.semgrep.yml \
             --exclude node_modules \
             --output=semgrep.sarif \
             --sarif \
             --verbose
-        working-directory: app
+        working-directory: .
 
       - name: Upload Semgrep SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: app/semgrep.sarif
+          sarif_file: semgrep.sarif
           category: semgrep-sast
-
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@0.14.0
-
-      - name: Run Trivy FS scan (SCA)
-        run: trivy fs --scanners vuln app --format sarif --output trivy-fs.sarif
-
-      - name: Upload Trivy FS SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-fs-sca
 
       - name: Build Docker image for scanning
         run: docker build -t demopai:latest .
@@ -78,8 +66,10 @@ jobs:
           ignore-unfixed: true
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
+
       - name: Upload Trivy image SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image-scan
+
