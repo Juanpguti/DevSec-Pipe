@@ -9,3 +9,4 @@ cd .. && docker build -t demoapi:local .
 docker run --rm -p 3000:3000 demoapi:local
 # probar:
 curl http://localhost:3000/health
+así es
