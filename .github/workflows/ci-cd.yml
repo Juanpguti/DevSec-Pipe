@@ -41,17 +41,17 @@ jobs:
       - name: Run Semgrep SAST scan
         run: |
           semgrep \
-            --config security/sast/.semgrep.yml \
+            --config ./security/sast/.semgrep.yml \
             --exclude node_modules \
             --output=semgrep.sarif \
             --sarif \
             --verbose
-        working-directory: app
+        working-directory: .
 
       - name: Upload Semgrep SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: app/semgrep.sarif
+          sarif_file: semgrep.sarif
           category: semgrep-sast
 
       - name: Install Trivy
