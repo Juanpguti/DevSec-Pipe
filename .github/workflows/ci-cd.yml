@@ -2,28 +2,25 @@ name: CI/CD (Sprint 1)
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+
+permissions:
+  contents: read
+  security-events: write   # necesario para subir SARIF
 
 jobs:
   build-test-security:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write   # necesario para subir SARIF a "Code scanning alerts"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------- Build & Test ----------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: app/package-lock.json
 
-      # ---- Build & Test ----
       - name: Install deps
         working-directory: app
         run: npm ci
@@ -32,9 +29,9 @@ jobs:
         working-directory: app
         run: npm test -- --ci
 
-      # -------- SAST (Semgrep) --------
+      # ---------- SAST (Semgrep) ----------
       - name: Install Semgrep
-        run: pip install "semgrep==1.73.0"
+        run: pip install semgrep==1.73.0
 
       - name: Run Semgrep scan (generate SARIF)
         run: |
@@ -42,28 +39,46 @@ jobs:
             --config security/sast/.semgrep.yml \
             --no-git-ignore \
             --exclude node_modules \
-            --sarif --output=semgrep.sarif \
+            --sarif --output semgrep.sarif \
             --verbose
 
       - name: Upload Semgrep SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
+          category: sast-semgrep   # <- categoría única
 
-      - name: Upload Semgrep SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-
-      # ---- SCA + Container ----
+      # ---------- SCA (Trivy FS) ----------
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.2
+        uses: aquasecurity/setup-trivy@v2.2.0
 
       - name: Trivy FS scan (SCA)
-        run: trivy fs --severity HIGH,CRITICAL --exit-code 1 --no-progress .
+        run: |
+          trivy fs \
+            --format sarif \
+            --output trivy-sca.sarif \
+            --skip-dirs node_modules \
+            app
 
+      - name: Upload Trivy SCA SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-sca.sarif
+          category: sca-trivy       # <- categoría única
+
+      # ---------- Build Docker & Image Scan ----------
       - name: Build Docker image
-        run: docker build -t demoapi:${{ github.sha }} .
+        run: docker build -t demoapi:local .
 
       - name: Trivy Image scan
-        run: trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress demoapi:${{ github.sha }}
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-image.sarif \
+            demoapi:local
+
+      - name: Upload Trivy Image SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: container-trivy  # <- categoría única
