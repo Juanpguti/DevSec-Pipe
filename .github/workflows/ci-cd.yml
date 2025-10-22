@@ -1,78 +1,79 @@
-name: build-test-security
+name: CI/CD (Sprint 1)
 
-# Ejecutar en push o PR, ajustar ramas según necesidad
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write  # necesario para subir SARIF a "Code scanning alerts"
 
 jobs:
   build-test-security:
-    name: Build, Test & Security Scans
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read           # Permiso para acciones de checkout
-      security-events: write   # Permiso para subir resultados de Code Scanning
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # Configurar Node.js (si la aplicación es Node, ajustar versión según proyecto)
-      - name: Setup Node
+      - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
+        working-directory: app
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --ci
+        working-directory: app
 
-      - name: Build Docker image for scanning
-        run: docker build -t demopai:local .
-
-      # Configurar Python y Semgrep CLI para SAST
       - name: Setup Python (for Semgrep)
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
       - name: Install Semgrep
-        run: pip install semgrep
+        run: pip install semgrep==1.73.0
 
       - name: Run Semgrep SAST scan
-        run: semgrep --config security/sast/.semgrep.yml --sarif -o semgrep.sarif
+        run: |
+          semgrep \
+            --config security/sast/.semgrep.yml \
+            --exclude node_modules \
+            --output=semgrep.sarif \
+            --sarif \
+            --verbose
+        working-directory: app
 
-      # Instalar Trivy (herramienta de SCA/imagen)
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.4
-        # 'version: latest' por defecto instala la última versión de Trivy:contentReference[oaicite:4]{index=4}
-
-      - name: Run Trivy FS scan (SCA)
-        run: trivy fs --exit-code 0 --format sarif --output trivy-fs.sarif .
-
-      - name: Run Trivy image scan (Docker image)
-        run: trivy image --exit-code 0 --format sarif --output trivy-image.sarif demopai:local
-
-      # Subir resultados SAST y SCA a Code Scanning (Security tab)
       - name: Upload Semgrep SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: semgrep.sarif
-          category: semgrep
+          sarif_file: app/semgrep.sarif
+          category: semgrep-sast
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.14.0
+
+      - name: Run Trivy FS scan (SCA)
+        run: trivy fs --scanners vuln app --format sarif --output trivy-fs.sarif
 
       - name: Upload Trivy FS SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
-          category: trivy-fs
+          category: trivy-fs-sca
 
-      - name: Upload Trivy Image SARIF to GitHub Security
+      - name: Build Docker image for scanning
+        run: docker build -t demopai:latest .
+
+      - name: Run Trivy image scan (Docker image)
+        run: trivy image --format sarif --output trivy-image.sarif demopai:latest
+
+      - name: Upload Trivy image SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
-          category: trivy-image
+          category: trivy-image-scan
