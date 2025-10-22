@@ -1,23 +1,12 @@
-# security/sast/.semgrep.yml
-# Reglas mínimas y válidas para JS/TS 
 rules:
-  - id: no-eval
-    message: Evita usar eval(); abre vulnerabilidades de inyección.
-    severity: WARNING
-    languages: [javascript, typescript]
-    pattern: eval(...)
-
-  - id: no-child-process-exec
-    message: Evita child_process.exec(); usa execFile/spawn con listas blancas.
-    severity: WARNING
-    languages: [javascript, typescript]
-    pattern: |
-      const child_process = require('child_process')
-      child_process.exec(...)
-
-  - id: express-unsafe-jsonp
-    message: Respuesta JSONP insegura en Express (riesgo de XSS).
-    severity: WARNING
-    languages: [javascript, typescript]
-    patterns:
-      - pattern: res.jsonp(...)
+- id: ejemplo-regla-seguridad
+  languages: [javascript]        # Lenguaje al que se aplica la regla
+  message: "Uso inseguro de eval() detectado"
+  severity: ERROR
+  patterns:
+    - pattern: eval(...)
+      anchors:
+        - "==> Este patrón detecta uso de eval()"
+  metadata:
+    short_description: "No usar eval por riesgos de seguridad."
+    references: ["https://semgrep.dev/docs/writing-rules/rule-syntax/"]

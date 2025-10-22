@@ -1,84 +1,78 @@
-name: CI/CD (Sprint 1)
+name: build-test-security
 
+# Ejecutar en push o PR, ajustar ramas según necesidad
 on:
   push:
-
-permissions:
-  contents: read
-  security-events: write   # necesario para subir SARIF
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-test-security:
+    name: Build, Test & Security Scans
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read           # Permiso para acciones de checkout
+      security-events: write   # Permiso para subir resultados de Code Scanning
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ---------- Build & Test ----------
+      # Configurar Node.js (si la aplicación es Node, ajustar versión según proyecto)
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: 18
 
-      - name: Install deps
-        working-directory: app
-        run: npm ci
+      - name: Install dependencies
+        run: npm install
 
-      - name: Run unit tests
-        working-directory: app
-        run: npm test -- --ci
+      - name: Run tests
+        run: npm test
 
-      # ---------- SAST (Semgrep) ----------
+      - name: Build Docker image for scanning
+        run: docker build -t demopai:local .
+
+      # Configurar Python y Semgrep CLI para SAST
+      - name: Setup Python (for Semgrep)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
       - name: Install Semgrep
-        run: pip install semgrep==1.73.0
+        run: pip install semgrep
 
-      - name: Run Semgrep scan (generate SARIF)
-        run: |
-          semgrep \
-            --config security/sast/.semgrep.yml \
-            --no-git-ignore \
-            --exclude node_modules \
-            --sarif --output semgrep.sarif \
-            --verbose
+      - name: Run Semgrep SAST scan
+        run: semgrep --config security/sast/.semgrep.yml --sarif -o semgrep.sarif
 
+      # Instalar Trivy (herramienta de SCA/imagen)
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.4
+        # 'version: latest' por defecto instala la última versión de Trivy:contentReference[oaicite:4]{index=4}
+
+      - name: Run Trivy FS scan (SCA)
+        run: trivy fs --exit-code 0 --format sarif --output trivy-fs.sarif .
+
+      - name: Run Trivy image scan (Docker image)
+        run: trivy image --exit-code 0 --format sarif --output trivy-image.sarif demopai:local
+
+      # Subir resultados SAST y SCA a Code Scanning (Security tab)
       - name: Upload Semgrep SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
-          category: sast-semgrep   # <- categoría única
+          category: semgrep
 
-      # ---------- SCA (Trivy FS) ----------
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v2.2.0
-
-      - name: Trivy FS scan (SCA)
-        run: |
-          trivy fs \
-            --format sarif \
-            --output trivy-sca.sarif \
-            --skip-dirs node_modules \
-            app
-
-      - name: Upload Trivy SCA SARIF
+      - name: Upload Trivy FS SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-sca.sarif
-          category: sca-trivy       # <- categoría única
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
 
-      # ---------- Build Docker & Image Scan ----------
-      - name: Build Docker image
-        run: docker build -t demoapi:local .
-
-      - name: Trivy Image scan
-        run: |
-          trivy image \
-            --format sarif \
-            --output trivy-image.sarif \
-            demoapi:local
-
-      - name: Upload Trivy Image SARIF
+      - name: Upload Trivy Image SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
-          category: container-trivy  # <- categoría única
+          category: trivy-image
