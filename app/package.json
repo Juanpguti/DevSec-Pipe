@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "postinstall": "patch-package"
   },
   "keywords": [],
   "license": "MIT",
@@ -13,10 +14,17 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "babel-plugin-istanbul": "^7.0.1",
     "jest": "^30.2.0",
-    "supertest": "^7.0.0"
+    "minimatch": "^10.0.3",
+    "patch-package": "^8.0.1",
+    "supertest": "^7.0.0",
+    "test-exclude": "^7.0.1"
   },
   "overrides": {
-    "cross-spawn": "7.0.5"
+    "brace-expansion": "2.0.2"
+  },
+  "resolutions": {
+    "brace-expansion": "2.0.2"
   }
 }
