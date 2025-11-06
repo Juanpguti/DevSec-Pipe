@@ -72,4 +72,31 @@ jobs:
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image-scan
+          
+  dependency-check:
+    name: OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java (Dependency-Check requires it)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@v3
+        with:
+          project: "devsec-pipe-nodejs"
+          path: "./app"
+          format: "HTML"
+          out: "reports"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-check-report
+          path: reports
 

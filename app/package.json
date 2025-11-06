@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "jest --runInBand",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "lint": "eslint .",
+    "prepare": "cd .. && husky install"
   },
   "keywords": [],
   "license": "MIT",
@@ -14,10 +16,18 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
     "babel-plugin-istanbul": "^7.0.1",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^29.0.1",
+    "globals": "^16.4.0",
+    "husky": "^8.0.3",
     "jest": "^30.2.0",
+    "lint-staged": "^16.2.6",
     "minimatch": "^10.0.3",
     "patch-package": "^8.0.1",
+    "prettier": "^3.6.2",
     "supertest": "^7.0.0",
     "test-exclude": "^7.0.1"
   },
@@ -26,5 +36,11 @@
   },
   "resolutions": {
     "brace-expansion": "2.0.2"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
