@@ -76,27 +76,25 @@ jobs:
   dependency-check:
     name: OWASP Dependency-Check
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Java (Dependency-Check requires it)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+      - name: Run OWASP Dependency-Check via Docker
+        run: |
+          mkdir -p reports
+          docker run --rm \
+            -v ${{ github.workspace }}/app:/src \
+            -v ${{ github.workspace }}/reports:/report \
+            owasp/dependency-check:latest \
+            --project "devsec-pipe-nodejs" \
+            --scan /src \
+            --format HTML \
+            --out /report
 
-      - name: Run OWASP Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@v3
-        with:
-          project: "devsec-pipe-nodejs"
-          path: "./app"
-          format: "HTML"
-          out: "reports"
-
-      - name: Upload report artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Dependency-Check Report
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: reports
-
